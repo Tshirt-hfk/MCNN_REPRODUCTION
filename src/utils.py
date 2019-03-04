@@ -292,7 +292,10 @@ def set_gpu(gpu=0):
 
 
 if __name__ == '__main__':
-    crowd_img, density_map, cropped_crowd_count = read_test_data('./IMG_2.jpg', './GT_IMG_2.mat')
+    dataset = 'A'
+    img_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/train_data/images/'
+    gt_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/train_data/ground_truth/'
+    crowd_img, density_map, cropped_crowd_count = read_test_data(img_root_dir+'IMG_2.jpg', gt_root_dir+'GT_IMG_2.mat')
     # print(density_map[0, :, :, 0])
     # img_path = '../IMG_2.jpg'
     # ori_crowd_img = cv.imread(img_path)
@@ -308,5 +311,6 @@ if __name__ == '__main__':
     # show_density_map(ori_crowd_img[:, :, 0])
     sum = np.sum(np.sum(density_map))
     print(sum, cropped_crowd_count)
+    print(density_map.shape, crowd_img.shape)
     show_density_map(density_map[0, :, :, 0])
-    show_density_map(crowd_img[:, :, 0])
+    show_density_map(crowd_img[0, :, :, 0])
