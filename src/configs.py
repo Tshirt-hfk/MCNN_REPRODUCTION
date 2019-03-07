@@ -8,13 +8,13 @@ class ConfigFactory:
     def __init__(self, name='mcnn'):
         self.name = name
         self.batch_size = 1
-        self.lr = 1e-6
+        self.lr = 0.00001
         self.lr_decay = 0.9
         self.momentum = 0.9
-        self.total_iters = 200000
-        self.max_ckpt_keep = 2000
-        self.ckpt_router = '../ckpts/' + self.name + r'/'
-        self.log_router = '../logs/' + self.name + r'/'
+        self.total_iters = 2000
+        self.max_ckpt_keep = 1
+        self.ckpt_router = './ckpts/' + self.name + r'/'
+        self.log_router = './logs/' + self.name + r'/'
 
     def display_configs(self):
         msg = '''

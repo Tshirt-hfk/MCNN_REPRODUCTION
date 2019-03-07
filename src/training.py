@@ -8,16 +8,23 @@ import numpy as np
 import os
 import random
 import time
-from utils import *
 from networks import multi_column_cnn
 from configs import *
 from data_loader import *
 
 np.set_printoptions(threshold=np.inf)
 
+def set_gpu(gpu=0):
+    """
+    the gpu used setting
+    :param gpu: gpu id
+    :return:
+    """
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
 def train():
-    #set_gpu(1)
+    #set_gpu(0)
     dataset = 'A'
     # training dataset
     img_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/train_data/images/'
@@ -27,12 +34,12 @@ def train():
     val_gt_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/test_data/ground_truth/'
 
     # training dataset file list
-    img_file_list = os.listdir(img_root_dir)
-    gt_img_file_list = os.listdir(gt_root_dir)
+    #img_file_list = os.listdir(img_root_dir)
+    #gt_img_file_list = os.listdir(gt_root_dir)
 
     # testing dataset file list
-    val_img_file_list = os.listdir(val_img_root_dir)
-    val_gt_file_list = os.listdir(val_gt_root_dir)
+    #val_img_file_list = os.listdir(val_img_root_dir)
+    #val_gt_file_list = os.listdir(val_gt_root_dir)
 
     cfig = ConfigFactory()
 
@@ -76,64 +83,46 @@ def train():
         saver.restore(sess, ckpt.model_checkpoint_path)
     sess.run(init)
 
-    blob_list = ImageDataLoader(img_root_dir, gt_root_dir, val_img_root_dir, val_gt_root_dir, shuffle=True, gt_downsample=True, pre_load=True, data_type=True)
-
+    data_loader = ImageDataLoader(img_root_dir, gt_root_dir, shuffle=True, downsample=True, pre_load=True)
+    data_loader_val = ImageDataLoader(val_img_root_dir, val_gt_root_dir, shuffle=False, downsample=False, pre_load=True)
     # start training
     for i in range(cfig.total_iters):
         # training
         index = 1
-        for blob in blob_list:
-        #for file_index in range(len(img_file_list)):
-            # img_path = img_root_dir + img_file_list[file_index]
-            # gt_path = gt_root_dir + 'GT_' + img_file_list[file_index].split(r'.')[0] + '.mat.'
-            # gt_path = gt_root_dir + 'GT_' + img_file_list[file_index].split(r'.')[0]
+        for blob in data_loader:
             img, gt_dmp, gt_count = blob['data'], blob['gt_density'], blob['crowd_count']
             feed_dict = {input_img_placeholder: (img - 127.5) / 128, density_map_placeholder: gt_dmp}
-
-            _, inf_dmp, loss = sess.run([optimizer, inference_density_map, joint_loss],
-                                          feed_dict=feed_dict)
+            _, inf_dmp, loss = sess.run([optimizer, inference_density_map, joint_loss], feed_dict=feed_dict)
             format_time = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
             format_str = 'step %d, joint loss=%.5f, inference= %.5f, gt=%d'
-            log_line = format_time, blob['fname'], format_str % (i * len(img_file_list) + index, loss, inf_dmp.sum(), gt_count)
+            log_line = format_time, blob['fname'], format_str % (i * data_loader.num_samples + index, loss, inf_dmp.sum(), gt_count)
             log.writelines(str(log_line) + '\n')
             print(log_line)
             index = index + 1
-            # covert graph to pb file
-            # tf.train.write_graph(sess.graph_def, "./", 'graph.pb' + str(file_index), as_text=True)
-            # test whether add new operation dynamically
-            # sess.graph.finalize()
         saver.save(sess, cfig.ckpt_router + '/v1', global_step=i)
 
         if i % 50 == 0:
             val_log = open(cfig.log_router + cfig.name + r'_validating_' + str(i) +  '_.logs', mode='w', encoding='utf-8')
             absolute_error = 0.0
             square_error = 0.0
-            # validating
-            blob_list.set_data_type(False)
             file_index = 1
-            for blob in blob_list:
-            #for file_index in range(len(val_img_file_list)):
-                #img_path = val_img_root_dir + val_img_file_list[file_index]
-                # gt_path = val_gt_root_dir + 'GT_' + val_img_file_list[file_index].split(r'.')[0] + '.mat'
-                #gt_path = val_gt_root_dir + 'GT_' + val_img_file_list[file_index].split(r'.')[0]
-                #img, gt_dmp, gt_count = read_test_data(img_path, gt_path, scale=4)
+            for blob in data_loader_val:
                 img, gt_dmp, gt_count = blob['data'], blob['gt_density'], blob['crowd_count']
                 feed_dict = {input_img_placeholder: (img - 127.5) / 128, density_map_placeholder: gt_dmp}
-                _, inf_dmp, loss = sess.run([optimizer, inference_density_map, joint_loss], feed_dict=feed_dict)
+                inf_dmp = sess.run(inference_density_map, feed_dict=feed_dict)
 
-                format_time = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-                format_str = 'step %d, joint loss=%.5f, inference= %.5f, gt=%d'
+                #format_time = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+                #format_str = 'step %d, joint loss=%.5f, inference= %.5f, gt=%d'
                 absolute_error = absolute_error + np.abs(np.subtract(gt_count, inf_dmp.sum())).mean()
                 square_error = square_error + np.power(np.subtract(gt_count, inf_dmp.sum()), 2).mean()
-                log_line = format_time, val_img_file_list[file_index], format_str % (file_index, loss, inf_dmp.sum(), gt_count)
-                val_log.writelines(str(log_line) + '\n')
-                print(log_line)
+                #log_line = format_time, blob['fname'], format_str % (file_index, loss, inf_dmp.sum(), gt_count)
+                #val_log.writelines(str(log_line) + '\n')
+                #print(log_line)
                 file_index = file_index + 1
-            mae = absolute_error / len(val_img_file_list)
-            rmse = np.sqrt(absolute_error / len(val_img_file_list))
+            mae = absolute_error / data_loader_val.num_samples
+            rmse = np.sqrt(absolute_error / data_loader_val.num_samples)
             val_log.writelines(str('MAE_' + str(mae) + '_MSE_' + str(rmse)) + '\n')
             val_log.close()
-            blob_list.set_data_type(True)
             print(str('MAE_' +str(mae) + '_MSE_' + str(rmse)))
 
 

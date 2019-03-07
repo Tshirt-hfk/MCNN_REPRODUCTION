@@ -7,28 +7,22 @@ from scipy.io import loadmat
 import matplotlib.pyplot as plt
 
 class ImageDataLoader():
-    def __init__(self, data_dir, gt_dir, test_data_dir, test_gt_dir, shuffle=False, gt_downsample=False, pre_load=False, data_type=True):
+    def __init__(self, data_dir, gt_dir, shuffle=False, downsample=False, pre_load=False):
         #pre_load: if true, all training and validation images are loaded into CPU RAM for faster processing.
         #          This avoids frequent file reads. Use this only for small datasets.
         #data_type: if true, using training image, else, using testing image
         self.data_dir = data_dir
         self.gt_dir = gt_dir
-        self.test_data_dir = test_data_dir
-        self.test_gt_dir = test_gt_dir
-        self.gt_downsample = gt_downsample
+        self.downsample = downsample
         self.pre_load = pre_load
         self.data_files = [filename for filename in os.listdir(data_dir) \
                            if os.path.isfile(os.path.join(data_dir,filename))]
-        self.test_data_files = [filename for filename in os.listdir(test_data_dir) \
-                           if os.path.isfile(os.path.join(test_data_dir,filename))]
         self.data_files.sort()
         self.shuffle = shuffle
-        self.data_type = data_type
         if shuffle:
             random.seed(2468)
         self.num_samples = len(self.data_files)
-        self.blob_list = []  
-        self.test_blob_list = []     
+        self.blob_list = []    
         self.id_list = [x for x in range(0, self.num_samples)]
         if self.pre_load:
             print('Pre-loading the data. This may take a while...')
@@ -37,40 +31,24 @@ class ImageDataLoader():
                 img_path = os.path.join(self.data_dir,fname)
                 gt_path = os.path.join(self.gt_dir,'GT_'+os.path.splitext(fname)[0]+'.mat')
                 blob = {}
-                blob['data'], blob['gt_density'] = self.read_data(img_path, gt_path)
+                blob['data'], blob['gt_density'], blob['crowd_count'] = self.read_data(img_path, gt_path)
                 blob['fname'] = fname
                 self.blob_list.append(blob)
                 idx = idx+1
                 if idx % 50 == 0:                    
                     print('Loaded ', idx, '/', self.num_samples, 'files')
-            print('Completed Loading training data: ', idx, 'files')
-            idx = 0
-            for fname in self.test_data_files:
-                img_path = os.path.join(self.test_data_dir,fname)
-                gt_path = os.path.join(self.test_gt_dir,'GT_'+os.path.splitext(fname)[0]+'.mat')
-                blob = {}
-                blob['data'], blob['gt_density'], blob['crowd_count'] = self.read_test_data(img_path, gt_path)
-                blob['fname'] = fname
-                self.test_blob_list.append(blob)
-                idx = idx+1
-                if idx % 50 == 0:                    
-                    print('Loaded ', idx, '/', self.num_samples, 'files')
-            print('Completed Loading testing data: ', idx, 'files')
-
-    def set_data_type(self, data_type=True):
-        #data_type: if true, using training image, else, using testing image
-        self.data_type = data_type   
+            print('Completed Loading data: ', idx, 'files')
         
     def __iter__(self):
-        if self.data_type:
-            if self.shuffle:            
-                if self.pre_load:            
-                    random.shuffle(self.id_list)        
-                else:
-                    random.shuffle(self.data_files)
-                files = self.data_files
-                id_list = self.id_list
-        
+        if self.shuffle:            
+            if self.pre_load:            
+                random.shuffle(self.id_list)        
+            else:
+                random.shuffle(self.data_files)
+            files = self.data_files
+            id_list = self.id_list
+    
+        if self.downsample:
             for idx in id_list:
                 cropped_blob = {}
                 if self.pre_load:
@@ -89,12 +67,12 @@ class ImageDataLoader():
                 yield cropped_blob
         else:
             if self.pre_load:
-                for blob in self.test_blob_list:
+                for blob in self.blob_list:
                     yield blob
             else:
-                for fname in self.test_data_files:
-                    img_path = os.path.join(self.test_data_dir,fname)
-                    gt_path = os.path.join(self.test_gt_dir,'GT_'+os.path.splitext(fname)[0]+'.mat')
+                for fname in self.data_files:
+                    img_path = os.path.join(self.data_dir,fname)
+                    gt_path = os.path.join(self.gt_dir,'GT_'+os.path.splitext(fname)[0]+'.mat')
                     blob = {}
                     blob['data'], blob['gt_density'], blob['crowd_count'] = self.read_test_data(img_path, gt_path)
                     blob['fname'] = fname
@@ -308,23 +286,21 @@ class ImageDataLoader():
         # read the .mat file in dataset
         label_data = loadmat(gt_path)
         points = label_data['image_info'][0][0]['location'][0][0]
-
+        crowd_count = label_data['image_info'][0][0]['number'][0][0]
         scaled_crowd_img, scaled_points = self.get_scaled_crowd_image_and_points(ori_crowd_img, points, scale=scale)
         # cropped_scaled_crowd_count = cropped_crowd_count
         scaled_crowd_img_size = [scaled_crowd_img.shape[0], scaled_crowd_img.shape[1]]
         scaled_min_head_size = min_head_size / scale
         scaled_max_head_size = max_head_size / scale
 
-        # after cropped and scaled
         density_map = self.get_density_map(scaled_crowd_img_size, scaled_points,
                                     knn_phase, k, scaled_min_head_size, scaled_max_head_size)
 
-        # cropped_crowd_img = np.asarray(cropped_crowd_img)
         crowd_img = ori_crowd_img.reshape((1, ori_crowd_img.shape[0], ori_crowd_img.shape[1], ori_crowd_img.shape[2]))
 
         density_map = density_map.reshape((1, density_map.shape[0], density_map.shape[1], 1))
 
-        return crowd_img, density_map
+        return crowd_img, density_map, crowd_count
 
 
     def read_train_data(self, img_path, gt_path, scale=4, knn_phase=True, k=2, min_head_size=16, max_head_size=200):
@@ -431,7 +407,7 @@ if __name__ == "__main__":
     val_img_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/test_data/images/'
     val_gt_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/test_data/ground_truth/'
 
-    blob_list = ImageDataLoader(img_root_dir, gt_root_dir, shuffle=True, gt_downsample=True, pre_load=True)  
+    blob_list = ImageDataLoader(img_root_dir, gt_root_dir, shuffle=True, downsample=True, pre_load=True)  
     for blob in blob_list:
         print(blob['fname'], blob['data'].shape, blob['gt_density'].shape)
         show_density_map(blob['data'][0, :, :, 0])
