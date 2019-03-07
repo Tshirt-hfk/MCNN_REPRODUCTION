@@ -109,8 +109,7 @@ def train():
             for blob in data_loader_val:
                 img, gt_dmp, gt_count = blob['data'], blob['gt_density'], blob['crowd_count']
                 feed_dict = {input_img_placeholder: (img - 127.5) / 128, density_map_placeholder: gt_dmp}
-                inf_dmp = sess.run(inference_density_map, feed_dict=feed_dict)
-
+                _, inf_dmp, loss = sess.run([optimizer, inference_density_map, joint_loss], feed_dict=feed_dict)
                 #format_time = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
                 #format_str = 'step %d, joint loss=%.5f, inference= %.5f, gt=%d'
                 absolute_error = absolute_error + np.abs(np.subtract(gt_count, inf_dmp.sum())).mean()

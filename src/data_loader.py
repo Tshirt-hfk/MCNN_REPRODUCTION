@@ -58,7 +58,7 @@ class ImageDataLoader():
                 else:                    
                     fname = files[idx]
                     img_path = os.path.join(self.data_dir,fname)
-                    gt_path = os.path.join(self.gt_dir,os.path.splitext(fname)[0]+'.mat')
+                    gt_path = os.path.join(self.gt_dir,'GT_'+os.path.splitext(fname)[0]+'.mat')
 
                     cropped_blob = {}   
                     cropped_blob['data'], cropped_blob['gt_density'], cropped_blob['crowd_count'] = self.read_train_data(img_path, gt_path)
