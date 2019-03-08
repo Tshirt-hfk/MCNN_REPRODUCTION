@@ -79,7 +79,7 @@ def train():
     # start session
     sess = tf.Session()
     if ckpt and ckpt.model_checkpoint_path:
-        print('load model')
+        print('load model, ckpt.model_checkpoint_path')
         saver.restore(sess, ckpt.model_checkpoint_path)
     sess.run(init)
 
