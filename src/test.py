@@ -94,7 +94,6 @@ def test():
         feed_dict = {input_img_placeholder: (img - 127.5) / 128, density_map_placeholder: gt_dmp}
         _, inf_dmp, loss = sess.run([optimizer, inference_density_map, joint_loss], feed_dict=feed_dict)
         print(gt_count, inf_dmp.sum())
-        print(loss, dir(loss))
         absolute_error = absolute_error + np.abs(np.subtract(gt_count, inf_dmp.sum())).mean()
         square_error = square_error + np.power(np.subtract(gt_count, inf_dmp.sum()), 2).mean()
         file_index = file_index + 1

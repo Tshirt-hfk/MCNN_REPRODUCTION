@@ -99,7 +99,8 @@ def train():
             log.writelines(str(log_line) + '\n')
             print(log_line)
             index = index + 1
-        saver.save(sess, cfig.ckpt_router + '/v1', global_step=i)
+        if i % 100:
+            saver.save(sess, cfig.ckpt_router + '/v1', global_step=i)
 
         if i % 50 == 0:
             val_log = open(cfig.log_router + cfig.name + r'_validating_' + str(i) +  '_.logs', mode='w', encoding='utf-8')
