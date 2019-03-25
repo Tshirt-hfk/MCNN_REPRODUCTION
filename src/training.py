@@ -32,14 +32,6 @@ def train():
     val_img_root_dir = cfig.data_root_dir + r'part_' + dataset + r'_final/test_data/images/'
     val_gt_root_dir = cfig.data_root_dir + r'part_' + dataset + r'_final/test_data/ground_truth/'
 
-    # training dataset file list
-    #img_file_list = os.listdir(img_root_dir)
-    #gt_img_file_list = os.listdir(gt_root_dir)
-
-    # testing dataset file list
-    #val_img_file_list = os.listdir(val_img_root_dir)
-    #val_gt_file_list = os.listdir(val_gt_root_dir)
-
     cfig = ConfigFactory()
 
     # place holder
@@ -109,13 +101,13 @@ def train():
                 img, gt_dmp, gt_count = blob['data'], blob['gt_density'], blob['crowd_count']
                 feed_dict = {input_img_placeholder: (img - 127.5) / 128, density_map_placeholder: gt_dmp}
                 _, inf_dmp, loss = sess.run([optimizer, inference_density_map, joint_loss], feed_dict=feed_dict)
-                #format_time = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-                #format_str = 'step %d, joint loss=%.5f, inference= %.5f, gt=%d'
+                format_time = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+                format_str = 'step %d, joint loss=%.5f, inference= %.5f, gt=%d'
                 absolute_error = absolute_error + np.abs(np.subtract(gt_count, inf_dmp.sum())).mean()
                 square_error = square_error + np.power(np.subtract(gt_count, inf_dmp.sum()), 2).mean()
-                #log_line = format_time, blob['fname'], format_str % (file_index, loss, inf_dmp.sum(), gt_count)
-                #val_log.writelines(str(log_line) + '\n')
-                #print(log_line)
+                log_line = format_time, blob['fname'], format_str % (file_index, loss, inf_dmp.sum(), gt_count)
+                val_log.writelines(str(log_line) + '\n')
+                print(log_line)
                 file_index = file_index + 1
             mae = absolute_error / data_loader_val.num_samples
             rmse = np.sqrt(square_error / data_loader_val.num_samples)

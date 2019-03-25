@@ -32,14 +32,6 @@ def test():
     val_img_root_dir =  cfig.data_root_dir + r'part_' + dataset + r'_final/test_data/images/'
     val_gt_root_dir =  cfig.data_root_dir + r'part_' + dataset + r'_final/test_data/ground_truth/'
 
-    # training dataset file list
-    #img_file_list = os.listdir(img_root_dir)
-    #gt_img_file_list = os.listdir(gt_root_dir)
-
-    # testing dataset file list
-    #val_img_file_list = os.listdir(val_img_root_dir)
-    #val_gt_file_list = os.listdir(val_gt_root_dir)
-
     # place holder
     input_img_placeholder = tf.placeholder(tf.float32, shape=(None, None, None, 3))
     density_map_placeholder = tf.placeholder(tf.float32, shape=(None, None, None, 1))

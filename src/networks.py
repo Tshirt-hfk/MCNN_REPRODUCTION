@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*-coding:utf-8-*-
-# @Author : Weiqun Wu
-# @Time : 2018-11-23
 
 from __future__ import absolute_import
 from __future__ import division
