@@ -22,14 +22,15 @@ def set_gpu(gpu=0):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
 def test():
+    cfig = ConfigFactory()
     #set_gpu(0)
     dataset = 'A'
     # training dataset
-    img_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/train_data/images/'
-    gt_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/train_data/ground_truth/'
+    img_root_dir = cfig.data_root_dir + r'part_' + dataset + r'_final/train_data/images/'
+    gt_root_dir =  cfig.data_root_dir + r'part_' + dataset + r'_final/train_data/ground_truth/'
     # testing dataset
-    val_img_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/test_data/images/'
-    val_gt_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/test_data/ground_truth/'
+    val_img_root_dir =  cfig.data_root_dir + r'part_' + dataset + r'_final/test_data/images/'
+    val_gt_root_dir =  cfig.data_root_dir + r'part_' + dataset + r'_final/test_data/ground_truth/'
 
     # training dataset file list
     #img_file_list = os.listdir(img_root_dir)
@@ -38,8 +39,6 @@ def test():
     # testing dataset file list
     #val_img_file_list = os.listdir(val_img_root_dir)
     #val_gt_file_list = os.listdir(val_gt_root_dir)
-
-    cfig = ConfigFactory()
 
     # place holder
     input_img_placeholder = tf.placeholder(tf.float32, shape=(None, None, None, 3))
@@ -76,12 +75,14 @@ def test():
 
     # start session
     sess = tf.Session()
+
     if ckpt and ckpt.model_checkpoint_path:
         print('load model', ckpt.model_checkpoint_path)
         saver.restore(sess, ckpt.model_checkpoint_path)
-    sess.run(init)
+    else:
+        sess.run(init)
 
-    data_loader = ImageDataLoader(img_root_dir, gt_root_dir, shuffle=True, downsample=True, pre_load=False)
+    data_loader = ImageDataLoader(img_root_dir, gt_root_dir, shuffle=False, downsample=True, pre_load=False)
     data_loader_val = ImageDataLoader(val_img_root_dir, val_gt_root_dir, shuffle=False, downsample=False, pre_load=False)
 
     absolute_error = 0.0
@@ -91,17 +92,17 @@ def test():
         img, gt_dmp, gt_count = blob['data'], blob['gt_density'], blob['crowd_count']
         feed_dict = {input_img_placeholder: (img - 127.5) / 128, density_map_placeholder: gt_dmp}
         _, inf_dmp, loss = sess.run([optimizer, inference_density_map, joint_loss], feed_dict=feed_dict)
-        print(gt_count, inf_dmp.sum())
-        absolute_error = absolute_error + np.abs(np.subtract(gt_count, inf_dmp.sum())).mean()
-        square_error = square_error + np.power(np.subtract(gt_count, inf_dmp.sum()), 2).mean()
+        print(gt_count.sum(), inf_dmp.sum())
+        #print(absolute_error,square_error)
+        absolute_error = absolute_error + np.abs(np.subtract(gt_count.sum(), inf_dmp.sum())).mean()
+        square_error = square_error + np.power(np.subtract(gt_count.sum(), inf_dmp.sum()), 2).mean()
         file_index = file_index + 1
-        show_density_map(img[0, :, :, 0])
-        show_density_map(inf_dmp[0, :, :, 0])
-        show_density_map(gt_dmp[0, :, :, 0])
-    mae = absolute_error / data_loader_val.num_samples
-    rmse = np.sqrt(absolute_error / data_loader_val.num_samples)
+        #show_density_map(img[0, :, :, 0])
+        #show_density_map(inf_dmp[0, :, :, 0])
+        #show_density_map(gt_dmp[0, :, :, 0])
+    mae = absolute_error / data_loader.num_samples
+    rmse = np.sqrt(square_error / data_loader.num_samples)
     print(str('MAE_' +str(mae) + '_MSE_' + str(rmse)))
-
 
 if __name__ == '__main__':
     test()

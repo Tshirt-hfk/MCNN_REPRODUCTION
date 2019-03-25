@@ -45,8 +45,8 @@ class ImageDataLoader():
                 random.shuffle(self.id_list)        
             else:
                 random.shuffle(self.data_files)
-            files = self.data_files
-            id_list = self.id_list
+        files = self.data_files
+        id_list = self.id_list
     
         if self.downsample:
             for idx in id_list:

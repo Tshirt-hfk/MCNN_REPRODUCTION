@@ -22,14 +22,15 @@ def set_gpu(gpu=0):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
 def train():
+    cfig = ConfigFactory()
     #set_gpu(0)
     dataset = 'A'
     # training dataset
-    img_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/train_data/images/'
-    gt_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/train_data/ground_truth/'
+    img_root_dir = cfig.data_root_dir + r'part_' + dataset + r'_final/train_data/images/'
+    gt_root_dir = cfig.data_root_dir + r'part_' + dataset + r'_final/train_data/ground_truth/'
     # testing dataset
-    val_img_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/test_data/images/'
-    val_gt_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/test_data/ground_truth/'
+    val_img_root_dir = cfig.data_root_dir + r'part_' + dataset + r'_final/test_data/images/'
+    val_gt_root_dir = cfig.data_root_dir + r'part_' + dataset + r'_final/test_data/ground_truth/'
 
     # training dataset file list
     #img_file_list = os.listdir(img_root_dir)
@@ -70,7 +71,7 @@ def train():
     if not os.path.exists(cfig.ckpt_router):
         os.makedirs(cfig.ckpt_router)
     log = open(cfig.log_router + cfig.name + r'_training.logs', mode='a+', encoding='utf-8')
-
+    
     saver = tf.train.Saver(max_to_keep=cfig.max_ckpt_keep)
     ckpt = tf.train.get_checkpoint_state(cfig.ckpt_router)
 
@@ -79,12 +80,13 @@ def train():
     if ckpt and ckpt.model_checkpoint_path:
         print('load model, ckpt.model_checkpoint_path')
         saver.restore(sess, ckpt.model_checkpoint_path)
-    sess.run(init)
+    else:
+        sess.run(init)
 
     data_loader = ImageDataLoader(img_root_dir, gt_root_dir, shuffle=True, downsample=True, pre_load=True)
     data_loader_val = ImageDataLoader(val_img_root_dir, val_gt_root_dir, shuffle=False, downsample=False, pre_load=True)
     # start training
-    for i in range(cfig.total_iters):
+    for i in range(cfig.start_iters, cfig.total_iters):
         # training
         index = 1
         for blob in data_loader:
@@ -97,8 +99,6 @@ def train():
             log.writelines(str(log_line) + '\n')
             print(log_line)
             index = index + 1
-        if i % 100:
-            saver.save(sess, cfig.ckpt_router + '/v1', global_step=i)
 
         if i % 50 == 0:
             val_log = open(cfig.log_router + cfig.name + r'_validating_' + str(i) +  '_.logs', mode='w', encoding='utf-8')
@@ -118,10 +118,11 @@ def train():
                 #print(log_line)
                 file_index = file_index + 1
             mae = absolute_error / data_loader_val.num_samples
-            rmse = np.sqrt(absolute_error / data_loader_val.num_samples)
+            rmse = np.sqrt(square_error / data_loader_val.num_samples)
             val_log.writelines(str('MAE_' + str(mae) + '_MSE_' + str(rmse)) + '\n')
             val_log.close()
             print(str('MAE_' +str(mae) + '_MSE_' + str(rmse)))
+            saver.save(sess, cfig.ckpt_router + '/v1', global_step=i+1)
 
 
 if __name__ == '__main__':
