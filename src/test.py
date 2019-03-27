@@ -46,7 +46,7 @@ def test():
     joint_loss = density_map_loss
     # optimizer = tf.train.MomentumOptimizer(configs.learing_rate, momentum=configs.momentum).minimize(joint_loss)
     # adam optimizer
-    optimizer = tf.train.AdamOptimizer(cfig.lr).minimize(joint_loss)
+    # optimizer = tf.train.AdamOptimizer(cfig.lr).minimize(joint_loss)
 
     init = tf.global_variables_initializer()
 
@@ -83,15 +83,15 @@ def test():
     for blob in data_loader:
         img, gt_dmp, gt_count = blob['data'], blob['gt_density'], blob['crowd_count']
         feed_dict = {input_img_placeholder: (img - 127.5) / 128, density_map_placeholder: gt_dmp}
-        _, inf_dmp, loss = sess.run([optimizer, inference_density_map, joint_loss], feed_dict=feed_dict)
-        print(gt_count.sum(), inf_dmp.sum())
+        inf_dmp, loss = sess.run([inference_density_map, joint_loss], feed_dict=feed_dict)
+        print(gt_count.sum(), inf_dmp.sum(), loss)
         #print(absolute_error,square_error)
         absolute_error = absolute_error + np.abs(np.subtract(gt_count.sum(), inf_dmp.sum())).mean()
         square_error = square_error + np.power(np.subtract(gt_count.sum(), inf_dmp.sum()), 2).mean()
         file_index = file_index + 1
-        #show_density_map(img[0, :, :, 0])
-        #show_density_map(inf_dmp[0, :, :, 0])
-        #show_density_map(gt_dmp[0, :, :, 0])
+        show_density_map(img[0, :, :, 0])
+        show_density_map(inf_dmp[0, :, :, 0])
+        show_density_map(gt_dmp[0, :, :, 0])
     mae = absolute_error / data_loader.num_samples
     rmse = np.sqrt(square_error / data_loader.num_samples)
     print(str('MAE_' +str(mae) + '_MSE_' + str(rmse)))
