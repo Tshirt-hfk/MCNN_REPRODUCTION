@@ -390,15 +390,17 @@ class ImageDataLoader():
 
         return ori_crowd_img, scaled_density_map, crowd_count
 
-
+def show_map(map):
+    cv.imshow('image', map)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
 
 def show_density_map(density_map):
     """
     show the density map to help us analysis the distribution of the crowd
     :param density_map: the density map, the shape is [h, w]
     """
-
-    plt.imshow(density_map, cmap='jet')
+    plt.imshow(density_map)
     plt.show()
 
 if __name__ == "__main__":
