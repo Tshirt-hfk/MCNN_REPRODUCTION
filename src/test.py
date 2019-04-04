@@ -74,26 +74,26 @@ def test():
     else:
         sess.run(init)
 
-    data_loader = ImageDataLoader(img_root_dir, gt_root_dir, shuffle=False, downsample=True, pre_load=False)
+    data_loader = ImageDataLoader(img_root_dir, gt_root_dir, shuffle=False, downsample=False, pre_load=False)
     data_loader_val = ImageDataLoader(val_img_root_dir, val_gt_root_dir, shuffle=False, downsample=False, pre_load=False)
 
     absolute_error = 0.0
     square_error = 0.0
     file_index = 1
-    for blob in data_loader:
+    for blob in data_loader_val:
         img, gt_dmp, gt_count = blob['data'], blob['gt_density'], blob['crowd_count']
         feed_dict = {input_img_placeholder: (img - 127.5) / 128, density_map_placeholder: gt_dmp}
         inf_dmp, loss = sess.run([inference_density_map, joint_loss], feed_dict=feed_dict)
-        print(gt_count.sum(), inf_dmp.sum(), loss)
+        print(blob['fname'], gt_count.sum(), inf_dmp.sum(), loss)
         #print(absolute_error,square_error)
         absolute_error = absolute_error + np.abs(np.subtract(gt_count.sum(), inf_dmp.sum())).mean()
         square_error = square_error + np.power(np.subtract(gt_count.sum(), inf_dmp.sum()), 2).mean()
         file_index = file_index + 1
-        show_density_map(img[0, :, :, 0])
+        show_map(img[0, :, :, 0])
         show_density_map(inf_dmp[0, :, :, 0])
         show_density_map(gt_dmp[0, :, :, 0])
-    mae = absolute_error / data_loader.num_samples
-    rmse = np.sqrt(square_error / data_loader.num_samples)
+    mae = absolute_error / data_loader_val.num_samples
+    rmse = np.sqrt(square_error / data_loader_val.num_samples)
     print(str('MAE_' +str(mae) + '_MSE_' + str(rmse)))
 
 if __name__ == '__main__':
