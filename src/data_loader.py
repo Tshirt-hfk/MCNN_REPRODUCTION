@@ -412,7 +412,7 @@ if __name__ == "__main__":
     val_img_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/test_data/images/'
     val_gt_root_dir = r'D:/material/image_datasets/crowd_counting_datasets/ShanghaiTech_Crowd_Counting_Dataset/part_' + dataset + r'_final/test_data/ground_truth/'
 
-    blob_list = ImageDataLoader(img_root_dir, gt_root_dir, shuffle=True, downsample=True, pre_load=True)  
+    blob_list = ImageDataLoader(img_root_dir, gt_root_dir, shuffle=True, downsample=False, pre_load=False)  
     for blob in blob_list:
         print(blob['fname'], blob['data'].shape, blob['gt_density'].shape)
         show_map(blob['data'][0, :, :, 0])
