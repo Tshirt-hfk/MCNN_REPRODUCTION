@@ -126,7 +126,7 @@ class ImageDataLoader():
             x = points[i, 1]
             y = points[i, 0]
             # Euclidean distance
-            euclidean_distance[i, 0] = math.sqrt(math.pow(position[1] - x, 2) + math.pow(position[0] - y, 2))
+            euclidean_distance[i, 0] = math.sqrt(math.pow(position[0] - x, 2) + math.pow(position[1] - y, 2))
 
         # the all distance between current point and other points
         euclidean_distance[:, 0] = np.sort(euclidean_distance[:, 0])
@@ -415,5 +415,5 @@ if __name__ == "__main__":
     blob_list = ImageDataLoader(img_root_dir, gt_root_dir, shuffle=True, downsample=True, pre_load=True)  
     for blob in blob_list:
         print(blob['fname'], blob['data'].shape, blob['gt_density'].shape)
-        show_density_map(blob['data'][0, :, :, 0])
+        show_map(blob['data'][0, :, :, 0])
         show_density_map(blob['gt_density'][0, :, :, 0])
